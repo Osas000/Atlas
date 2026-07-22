@@ -306,7 +306,7 @@ class TestContextManager:
         async def handler(event: object) -> None:
             received.append(event)
 
-        bus.subscribe("system", handler)
+        bus.subscribe("context", handler)
         await manager.update_user(display_name="Event Test")
         assert len(received) == 1
 
@@ -317,7 +317,7 @@ class TestContextManager:
         async def handler(event: object) -> None:
             received.append(event)
 
-        bus.subscribe("system", handler)
+        bus.subscribe("context", handler)
         await manager.replace_context(AtlasContext())
         assert len(received) == 1
 

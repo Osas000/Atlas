@@ -205,17 +205,17 @@ class InMemoryStore(MemoryStore):
 # ======================================================================
 
 
-def _publish_memory_event(
+async def _publish_memory_event(
     event_bus: EventBus,
     action: str,
     record: MemoryRecord,
-    source: str = "memory_engine",
+    source: str = "memory_manager",
 ) -> None:
-    """Fire-and-forget an event about a memory mutation."""
+    """Publish an event about a memory mutation."""
     try:
-        asyncio.create_task(event_bus.publish(Event(
+        await event_bus.publish(Event(
             source=source,
-            category=EventCategory.PROJECT,
+            category=EventCategory.MEMORY,
             priority=EventPriority.NORMAL,
             payload={
                 "action": action,
@@ -223,9 +223,9 @@ def _publish_memory_event(
                 "title": record.title,
                 "category": record.category.value,
             },
-        )))
+        ))
     except Exception:
-        pass
+        logging.getLogger(__name__).exception("Failed to publish memory event")
 
 
 class MemoryLayer:
@@ -239,7 +239,7 @@ class MemoryLayer:
 
     async def create(self, record: MemoryRecord) -> MemoryRecord:
         result = await self._store.create(record)
-        _publish_memory_event(self._event_bus, "created", result, self._layer_name)
+        await _publish_memory_event(self._event_bus, "created", result, self._layer_name)
         self._logger.debug("Created memory %s in %s", result.memory_id, self._layer_name)
         return result
 
@@ -252,7 +252,7 @@ class MemoryLayer:
             raise ValueError(f"Memory not found: {record.memory_id}")
         updated = record.model_copy(update={"version": existing.version + 1, "updated_at": datetime.now()})
         result = await self._store.update(updated)
-        _publish_memory_event(self._event_bus, "updated", result, self._layer_name)
+        await _publish_memory_event(self._event_bus, "updated", result, self._layer_name)
         return result
 
     async def delete(self, memory_id: str) -> None:
@@ -260,7 +260,7 @@ class MemoryLayer:
         if record is None:
             return
         await self._store.delete(memory_id)
-        _publish_memory_event(self._event_bus, "deleted", record, self._layer_name)
+        await _publish_memory_event(self._event_bus, "deleted", record, self._layer_name)
 
     async def search(
         self,
@@ -371,15 +371,18 @@ class MemoryManager(IService):
 
     @property
     def name(self) -> str:
-        return "memory_engine"
+        return "memory_manager"
 
     async def initialize(self) -> None:
+        await super().initialize()
         self._logger.info("Memory Engine initializing")
 
     async def start(self) -> None:
+        await super().start()
         self._logger.info("Memory Engine started")
 
     async def stop(self) -> None:
+        await super().stop()
         self._logger.info("Memory Engine stopped")
 
     async def health_check(self) -> ServiceHealth:

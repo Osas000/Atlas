@@ -544,7 +544,7 @@ class TestIntelligenceRouter:
         async def handler(event: object) -> None:
             received.append(event)
 
-        bus.subscribe("workflow", handler)
+        bus.subscribe("intelligence", handler)
         await router.start()
         await router.request(Capability.CODING, "event test")
         assert len(received) >= 1

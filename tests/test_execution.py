@@ -854,7 +854,7 @@ class TestExecutionEngine:
         async def handler(event: object) -> None:
             received.append(event)
 
-        bus.subscribe("workflow", handler)
+        bus.subscribe("execution", handler)
         ctx = AtlasContext(permissions=PermissionContext(permissions={"file.read": True}))
         engine.set_context(ctx)
         await engine.start()

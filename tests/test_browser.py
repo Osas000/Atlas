@@ -224,16 +224,16 @@ class TestBrowserSessionManager:
         assert session_manager.get_session("nonexistent") is None
 
     def test_active_session(self, session_manager: BrowserSessionManager) -> None:
-        assert session_manager.active_session() is None
+        assert session_manager.active_session is None
         created = session_manager.create_session("chrome")
-        assert session_manager.active_session() is created
+        assert session_manager.active_session is created
 
     def test_set_active_session(self, session_manager: BrowserSessionManager) -> None:
         s1 = session_manager.create_session("chrome")
         s2 = session_manager.create_session("firefox")
-        assert session_manager.active_session() is s2
+        assert session_manager.active_session is s2
         assert session_manager.set_active_session(s1.session_id) is True
-        assert session_manager.active_session() is s1
+        assert session_manager.active_session is s1
 
     def test_set_active_session_nonexistent(self, session_manager: BrowserSessionManager) -> None:
         assert session_manager.set_active_session("nope") is False

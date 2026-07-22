@@ -980,7 +980,7 @@ class TestKnowledgeEngine:
         async def handler(event: object) -> None:
             received.append(event)
 
-        bus.subscribe("application", handler)
+        bus.subscribe("knowledge", handler)
         r = await engine.create_record(title="Event Test")
         await engine.update_record(r.record_id, title="Updated")
         await engine.add_citation(r.record_id, source_title="Source")

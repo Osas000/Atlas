@@ -201,7 +201,9 @@ class BrowserSessionManager:
     def get_session(self, session_id: str) -> BrowserSession | None:
         return self._sessions.get(session_id)
 
+    @property
     def active_session(self) -> BrowserSession | None:
+        """Return the active session."""
         if self._active_session_id is None:
             return None
         return self._sessions.get(self._active_session_id)
@@ -427,15 +429,18 @@ class BrowserEventBridge:
         priority: EventPriority = EventPriority.NORMAL,
     ) -> None:
         """Publish a browser event to the Event Bus."""
-        await self._event_bus.publish(Event(
-            source="browser_companion",
-            category=EventCategory.BROWSER,
-            priority=priority,
-            payload={
-                "action": action,
-                **(payload or {}),
-            },
-        ))
+        try:
+            await self._event_bus.publish(Event(
+                source="browser_companion",
+                category=EventCategory.BROWSER,
+                priority=priority,
+                payload={
+                    "action": action,
+                    **(payload or {}),
+                },
+            ))
+        except Exception:
+            self._logger.exception("Failed to publish browser event: %s", action)
         self._logger.debug("Published browser event: %s", action)
 
     async def publish_page_change(self, page: PageContext) -> None:
@@ -592,13 +597,16 @@ class BrowserCompanion(IService):
         return "browser_companion"
 
     async def initialize(self) -> None:
+        await super().initialize()
         self._logger.info("Browser Companion initializing")
 
     async def start(self) -> None:
+        await super().start()
         self._running = True
         self._logger.info("Browser Companion started")
 
     async def stop(self) -> None:
+        await super().stop()
         self._running = False
         self._logger.info("Browser Companion stopped")
 

@@ -31,6 +31,7 @@ from atlas_core.logging import setup_logging
 from atlas_core.memory import MemoryManager
 from atlas_core.monitoring import HealthMonitor, HealthSummary
 from atlas_core.operations import OperationsCore
+from atlas_core.opportunity import OpportunityEngine
 from atlas_core.plugins import ModuleLoader
 from atlas_core.registry import ServiceRegistry
 
@@ -46,6 +47,7 @@ class AtlasKernel:
         self._event_bus: Optional[EventBus] = None
         self._operations_core: Optional[OperationsCore] = None
         self._memory_manager: Optional[MemoryManager] = None
+        self._opportunity_engine: Optional[OpportunityEngine] = None
         self._lifecycle: Optional[LifecycleManager] = None
         self._health_monitor: Optional[HealthMonitor] = None
         self._state = KernelState.CREATED
@@ -89,10 +91,21 @@ class AtlasKernel:
         return self._operations_core
 
     @property
-    def memory_engine(self) -> MemoryManager:
+    def memory_manager(self) -> MemoryManager:
         if self._memory_manager is None:
-            raise RuntimeError("Memory Engine has not been created")
+            raise RuntimeError("Memory Manager has not been created")
         return self._memory_manager
+
+    @property
+    def memory_engine(self) -> MemoryManager:
+        """Deprecated: use memory_manager instead."""
+        return self.memory_manager
+
+    @property
+    def opportunity_engine(self) -> OpportunityEngine:
+        if self._opportunity_engine is None:
+            raise RuntimeError("Opportunity Engine has not been created")
+        return self._opportunity_engine
 
     # ------------------------------------------------------------------
     # Public API
@@ -140,9 +153,11 @@ class AtlasKernel:
 
         self._memory_manager = MemoryManager(event_bus=self._event_bus)
         self._operations_core = OperationsCore(event_bus=self._event_bus)
+        self._opportunity_engine = OpportunityEngine(event_bus=self._event_bus)
 
         self._registry.register(self._memory_manager)
         self._registry.register(self._operations_core)
+        self._registry.register(self._opportunity_engine)
 
         self._state = KernelState.BOOTED
         self._logger.info(

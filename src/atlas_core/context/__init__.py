@@ -226,12 +226,15 @@ class ContextManager(IService):
         return "context_manager"
 
     async def initialize(self) -> None:
+        await super().initialize()
         self._logger.info("Context Manager initializing")
 
     async def start(self) -> None:
+        await super().start()
         self._logger.info("Context Manager started")
 
     async def stop(self) -> None:
+        await super().stop()
         self._logger.info("Context Manager stopped")
 
     async def health_check(self) -> ServiceHealth:
@@ -247,8 +250,13 @@ class ContextManager(IService):
     # Context access
     # ------------------------------------------------------------------
 
+    @property
+    def context(self) -> AtlasContext:
+        """Return the current context."""
+        return self._context
+
     def get_context(self) -> AtlasContext:
-        """Return an immutable copy of the current context."""
+        """Return the current context (method accessor, prefer property)."""
         return self._context
 
     # ------------------------------------------------------------------
@@ -359,7 +367,7 @@ class ContextManager(IService):
         try:
             await self._event_bus.publish(Event(
                 source="context_manager",
-                category=EventCategory.SYSTEM,
+                category=EventCategory.CONTEXT,
                 priority=EventPriority.NORMAL,
                 payload={
                     "action": "context_changed",

@@ -36,9 +36,9 @@ class TestAtlasKernel:
         kernel.initialize()
         kernel.boot()
         assert kernel.state == KernelState.BOOTED
-        assert kernel.registry.count == 2  # memory_engine + operations_core
+        assert kernel.registry.count == 3  # memory_manager + operations_core + opportunity_engine
         assert kernel.operations_core is not None
-        assert kernel.memory_engine is not None
+        assert kernel.memory_manager is not None
 
     async def test_full_lifecycle(self, kernel: AtlasKernel) -> None:
         svc = MockService("test_svc")
@@ -61,7 +61,7 @@ class TestAtlasKernel:
         await kernel.start()
         health = await kernel.health_check()
         assert health.status == "healthy"
-        assert health.healthy_services == 3  # healthy + memory_engine + operations_core
+        assert health.healthy_services == 4  # healthy + memory_manager + operations_core + opportunity_engine
 
     async def test_restart(self, kernel: AtlasKernel) -> None:
         svc = MockService("r")
@@ -113,18 +113,19 @@ class TestAtlasKernel:
         with pytest.raises(RuntimeError):
             _ = k.operations_core
 
-    async def test_memory_engine_before_boot_raises(self) -> None:
+    async def test_memory_manager_before_boot_raises(self) -> None:
         k = AtlasKernel()
         k.initialize()
         with pytest.raises(RuntimeError):
-            _ = k.memory_engine
+            _ = k.memory_manager
 
-    async def test_memory_engine_property(self, kernel: AtlasKernel) -> None:
+    async def test_memory_manager_property(self, kernel: AtlasKernel) -> None:
         kernel.initialize()
         kernel.boot()
-        assert kernel.memory_engine is not None
+        assert kernel.memory_manager is not None
         from atlas_core.memory import MemoryManager
-        assert isinstance(kernel.memory_engine, MemoryManager)
+        assert isinstance(kernel.memory_manager, MemoryManager)
+        assert kernel.memory_engine is kernel.memory_manager  # alias works
 
     async def test_event_bus_publishes_through_kernel(self, kernel: AtlasKernel) -> None:
         kernel.initialize()

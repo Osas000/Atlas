@@ -75,13 +75,16 @@ class WorkflowCoordinator:
             source=source,
         )
         self._workflows[wf.workflow_id] = wf
-        await self._event_bus.publish(Event(
-            source="workflow_coordinator",
-            category=EventCategory.WORKFLOW,
-            priority=priority,
-            payload={"workflow_id": wf.workflow_id, "name": name, "action": "created"},
-            related_workflow=wf.workflow_id,
-        ))
+        try:
+            await self._event_bus.publish(Event(
+                source="workflow_coordinator",
+                category=EventCategory.WORKFLOW,
+                priority=priority,
+                payload={"workflow_id": wf.workflow_id, "name": name, "action": "created"},
+                related_workflow=wf.workflow_id,
+            ))
+        except Exception:
+            self._logger.exception("Failed to publish workflow created event")
         self._logger.info("Workflow created: %s (%s)", name, wf.workflow_id)
         return wf
 
@@ -92,17 +95,20 @@ class WorkflowCoordinator:
         old = wf.state
         wf.state = new_state
         wf.updated_at = datetime.now()
-        await self._event_bus.publish(Event(
-            source="workflow_coordinator",
-            category=EventCategory.WORKFLOW,
-            payload={
-                "workflow_id": workflow_id,
-                "from_state": old.name,
-                "to_state": new_state.name,
-                "action": "transition",
-            },
-            related_workflow=workflow_id,
-        ))
+        try:
+            await self._event_bus.publish(Event(
+                source="workflow_coordinator",
+                category=EventCategory.WORKFLOW,
+                payload={
+                    "workflow_id": workflow_id,
+                    "from_state": old.name,
+                    "to_state": new_state.name,
+                    "action": "transition",
+                },
+                related_workflow=workflow_id,
+            ))
+        except Exception:
+            self._logger.exception("Failed to publish workflow transition event")
         self._logger.info("Workflow %s: %s -> %s", workflow_id, old.name, new_state.name)
 
     async def handle_error(self, workflow_id: str) -> None:
@@ -143,14 +149,6 @@ class ScheduledTask:
 
 
 class TaskScheduler:
-    def __init__(self, event_bus: EventBus, tick_interval: float = 0.05) -> None:
-        self._event_bus = event_bus
-        self._tasks: dict[str, ScheduledTask] = {}
-        self._loop_task: asyncio.Task[None] | None = None
-        self._running = False
-        self._tick_interval = tick_interval
-        self._logger = logging.getLogger(__name__)
-
     async def schedule_interval(
         self,
         name: str,
@@ -280,13 +278,16 @@ class OperationsCore(IService):
         return self._scheduler
 
     async def initialize(self) -> None:
+        await super().initialize()
         self._logger.info("Operations Core initializing")
 
     async def start(self) -> None:
+        await super().start()
         await self._scheduler.start()
         self._logger.info("Operations Core started")
 
     async def stop(self) -> None:
+        await super().stop()
         await self._scheduler.stop()
         self._logger.info("Operations Core stopped")
 

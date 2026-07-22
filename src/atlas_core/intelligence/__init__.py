@@ -632,9 +632,11 @@ class IntelligenceRouter(IService):
         return "intelligence_router"
 
     async def initialize(self) -> None:
+        await super().initialize()
         self._logger.info("Intelligence Router initializing")
 
     async def start(self) -> None:
+        await super().start()
         self._running = True
         await self._health_monitor.start()
         self._queue_workers = [
@@ -646,6 +648,7 @@ class IntelligenceRouter(IService):
         )
 
     async def stop(self) -> None:
+        await super().stop()
         self._running = False
         await self._health_monitor.stop()
         for w in self._queue_workers:
@@ -869,7 +872,7 @@ class IntelligenceRouter(IService):
         try:
             await self._event_bus.publish(Event(
                 source="intelligence_router",
-                category=EventCategory.WORKFLOW,
+                category=EventCategory.INTELLIGENCE,
                 priority=request.priority,
                 payload={
                     "action": "request_completed",

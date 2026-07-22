@@ -340,6 +340,10 @@ class PermissionGuard:
     def set_context(self, context: AtlasContext) -> None:
         self._context = context
 
+    @property
+    def context(self) -> AtlasContext | None:
+        return self._context
+
     def check(self, command: Command) -> list[str]:
         """Check if the command's required permissions are granted.
 
@@ -784,14 +788,17 @@ class ExecutionEngine(IService):
         return "execution_engine"
 
     async def initialize(self) -> None:
+        await super().initialize()
         self._logger.info("Execution Engine initializing")
 
     async def start(self) -> None:
+        await super().start()
         self._running = True
         await self._worker_pool.start()
         self._logger.info("Execution Engine started")
 
     async def stop(self) -> None:
+        await super().stop()
         self._running = False
         await self._worker_pool.stop()
         self._logger.info("Execution Engine stopped")
@@ -840,7 +847,7 @@ class ExecutionEngine(IService):
         max_retries: int = 3,
     ) -> str:
         """Submit a command for async execution. Returns the job ID."""
-        context = self._permission_guard._context
+        context = self._permission_guard.context
         job = ExecutionJob(
             command=command,
             max_retries=max_retries,
@@ -919,7 +926,7 @@ class ExecutionEngine(IService):
             category = job.command.category.value if job.command else "unknown"
             await self._event_bus.publish(Event(
                 source="execution_engine",
-                category=EventCategory.WORKFLOW,
+                category=EventCategory.EXECUTION,
                 priority=EventPriority.NORMAL,
                 payload={
                     "action": "command_executed",

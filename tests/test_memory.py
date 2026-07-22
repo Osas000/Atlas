@@ -378,7 +378,7 @@ class TestArchiveMemory:
 
 class TestMemoryManager:
     async def test_initialise(self, manager: MemoryManager) -> None:
-        assert manager.name == "memory_engine"
+        assert manager.name == "memory_manager"
         await manager.initialize()
 
     async def test_start_stop(self, manager: MemoryManager) -> None:

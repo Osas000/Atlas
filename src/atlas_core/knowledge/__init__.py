@@ -747,13 +747,16 @@ class KnowledgeEngine(IService):
         return "knowledge_engine"
 
     async def initialize(self) -> None:
+        await super().initialize()
         self._logger.info("Knowledge Engine initializing")
 
     async def start(self) -> None:
+        await super().start()
         self._running = True
         self._logger.info("Knowledge Engine started")
 
     async def stop(self) -> None:
+        await super().stop()
         self._running = False
         self._logger.info("Knowledge Engine stopped")
 
@@ -1135,7 +1138,7 @@ class KnowledgeEngine(IService):
         try:
             await self._event_bus.publish(Event(
                 source="knowledge_engine",
-                category=EventCategory.APPLICATION,
+                category=EventCategory.KNOWLEDGE,
                 priority=EventPriority.NORMAL,
                 payload={"action": action, **payload},
             ))
