@@ -32,6 +32,7 @@ from atlas_core.memory import MemoryManager
 from atlas_core.monitoring import HealthMonitor, HealthSummary
 from atlas_core.operations import OperationsCore
 from atlas_core.mission import MissionControl
+from atlas_core.notification import NotificationService
 from atlas_core.opportunity import OpportunityEngine
 from atlas_core.plugins import ModuleLoader
 from atlas_core.registry import ServiceRegistry
@@ -50,6 +51,7 @@ class AtlasKernel:
         self._memory_manager: Optional[MemoryManager] = None
         self._opportunity_engine: Optional[OpportunityEngine] = None
         self._mission_control: Optional[MissionControl] = None
+        self._notification_service: Optional[NotificationService] = None
         self._lifecycle: Optional[LifecycleManager] = None
         self._health_monitor: Optional[HealthMonitor] = None
         self._state = KernelState.CREATED
@@ -115,6 +117,12 @@ class AtlasKernel:
             raise RuntimeError("Mission Control has not been created")
         return self._mission_control
 
+    @property
+    def notification_service(self) -> NotificationService:
+        if self._notification_service is None:
+            raise RuntimeError("Notification Service has not been created")
+        return self._notification_service
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -163,11 +171,13 @@ class AtlasKernel:
         self._operations_core = OperationsCore(event_bus=self._event_bus)
         self._opportunity_engine = OpportunityEngine(event_bus=self._event_bus)
         self._mission_control = MissionControl(event_bus=self._event_bus)
+        self._notification_service = NotificationService(event_bus=self._event_bus)
 
         self._registry.register(self._memory_manager)
         self._registry.register(self._operations_core)
         self._registry.register(self._opportunity_engine)
         self._registry.register(self._mission_control)
+        self._registry.register(self._notification_service)
 
         self._state = KernelState.BOOTED
         self._logger.info(

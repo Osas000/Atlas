@@ -4,6 +4,7 @@ import pytest
 
 from atlas_core.context import AtlasContext
 from atlas_core.events import EventBus
+from atlas_core.interfaces import SubsystemResponse
 from atlas_core.mission import (
     HistoryEntry,
     Mission,
@@ -437,7 +438,6 @@ class TestMissionExecutor:
         result = await executor.execute_step(step)
         assert result.state == StepState.COMPLETED
         assert result.result["subsystem"] == "knowledge"
-        assert result.result["status"] == "routed"
 
     async def test_execute_plan(self, executor: MissionExecutor) -> None:
         m = Mission(title="Test")
@@ -450,12 +450,17 @@ class TestMissionExecutor:
         assert len(result.steps) == 2
         assert all(s.state == StepState.COMPLETED for s in result.steps)
 
-    async def test_execute_plan_with_payload(self, executor: MissionExecutor) -> None:
+    async def test_execute_plan_with_registered_handler(self, executor: MissionExecutor) -> None:
+        """Test that a registered handler's SubsystemResponse is used."""
+        async def handler(payload: dict) -> SubsystemResponse:
+            return SubsystemResponse(success=True, payload={"processed": True, "key": "value"})
+        executor.register_handler(Subsystem.KNOWLEDGE, handler)
         m = Mission(title="Test")
         step = MissionStep(order=1, subsystem=Subsystem.KNOWLEDGE, payload={"key": "value"})
         plan = MissionPlan(mission=m, steps=[step])
         result = await executor.execute_plan(plan)
         assert result.steps[0].result.get("key") == "value"
+        assert result.steps[0].result.get("processed") is True
 
 
 # ======================================================================

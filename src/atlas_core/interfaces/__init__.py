@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum, auto
 from typing import Any
 
@@ -54,6 +55,26 @@ class IService(ABC):
 
     async def health_check(self) -> ServiceHealth:
         return ServiceHealth(healthy=True, state=ServiceState.RUNNING)
+
+
+@dataclass
+class SubsystemResponse:
+    """Standard response contract for all subsystem operations.
+
+    Every subsystem eventually returns this.
+    MissionExecutor consumes ONLY this interface.
+    No subsystem-specific return types.
+    """
+
+    success: bool = True
+    status: str = "completed"
+    payload: dict[str, Any] = field(default_factory=dict)
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    metrics: dict[str, Any] = field(default_factory=dict)
+    duration: float = 0.0
+    timestamp: datetime = field(default_factory=datetime.now)
+    subsystem: str = ""
 
 
 class IPlugin(ABC):

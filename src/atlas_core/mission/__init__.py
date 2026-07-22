@@ -22,7 +22,7 @@ from uuid import UUID, uuid4
 
 from atlas_core.context import AtlasContext
 from atlas_core.events import EventBus
-from atlas_core.interfaces import IService, ServiceHealth, ServiceState
+from atlas_core.interfaces import IService, ServiceHealth, ServiceState, SubsystemResponse
 from atlas_core.interfaces.events import Event, EventCategory, EventPriority
 
 
@@ -444,11 +444,25 @@ class MissionExecutor:
 
     For every MissionStep, routes by subsystem to the appropriate engine.
     NEVER performs work itself — always delegates.
+    Consumes ONLY SubsystemResponse from registered handlers.
     """
 
     def __init__(self, event_bus: EventBus) -> None:
         self._event_bus = event_bus
         self._logger = logging.getLogger(__name__)
+        self._handlers: dict[Subsystem, Any] = {}
+
+    def register_handler(self, subsystem: Subsystem, handler: Any) -> None:
+        """Register a callable handler for a subsystem.
+
+        The handler must accept a dict payload and return SubsystemResponse.
+        """
+        self._handlers[subsystem] = handler
+        self._logger.debug("Registered handler for subsystem: %s", subsystem.value)
+
+    def unregister_handler(self, subsystem: Subsystem) -> None:
+        self._handlers.pop(subsystem, None)
+        self._logger.debug("Unregistered handler for subsystem: %s", subsystem.value)
 
     async def execute_step(
         self,
@@ -457,29 +471,44 @@ class MissionExecutor:
     ) -> MissionStep:
         """Execute a single mission step by routing to the appropriate subsystem.
 
-        This method coordinates — it publishes events and updates state.
-        Actual subsystem execution is delegated.
+        Looks up a registered handler for the step's Subsystem.
+        Calls the handler with step payload.
+        Consumes SubsystemResponse to build the result MissionStep.
         """
         context = context or {}
-        payload = dict(step.payload)
-
-        # Delegate to subsystem (in a real system, this would call the engine)
-        # MissionControl publishes events; the actual execution is done by
-        # subscribers or the MissionControl.execute() method.
         subsystem_name = step.subsystem.value
         self._logger.info(
             "Routing step '%s' (order=%d) to subsystem '%s'",
             step.title, step.order, subsystem_name,
         )
 
-        result = {
-            "subsystem": subsystem_name,
-            "step_title": step.title,
-            "order": step.order,
-            "status": "routed",
-            "timestamp": datetime.now().isoformat(),
-            **payload,
-        }
+        handler = self._handlers.get(step.subsystem)
+        if handler is not None:
+            try:
+                response = await handler(step.payload)
+                if not isinstance(response, SubsystemResponse):
+                    response = SubsystemResponse(
+                        success=False,
+                        status="error",
+                        errors=["Handler did not return a SubsystemResponse"],
+                        subsystem=subsystem_name,
+                    )
+            except Exception as e:
+                response = SubsystemResponse(
+                    success=False,
+                    status="error",
+                    errors=[str(e)],
+                    subsystem=subsystem_name,
+                )
+        else:
+            response = SubsystemResponse(
+                success=True,
+                status="completed",
+                payload={"subsystem": subsystem_name, "title": step.title},
+                subsystem=subsystem_name,
+            )
+
+        step_state = StepState.COMPLETED if response.success else StepState.FAILED
 
         new_step = MissionStep(
             step_id=step.step_id,
@@ -490,16 +519,18 @@ class MissionExecutor:
             dependencies=list(step.dependencies),
             retry_count=step.retry_count,
             max_retries=step.max_retries,
-            result=result,
-            state=StepState.COMPLETED,
+            result=response.payload,
+            state=step_state,
             payload=dict(step.payload),
         )
 
-        await self._publish_event("step_routed", {
+        await self._publish_event("step_routed" if response.success else "step_failed", {
             "step_id": step.step_id,
             "subsystem": subsystem_name,
             "title": step.title,
             "order": step.order,
+            "success": response.success,
+            "errors": response.errors,
         })
 
         return new_step
