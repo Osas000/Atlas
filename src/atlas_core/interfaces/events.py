@@ -36,6 +36,7 @@ class EventCategory(Enum):
     USER = "user"
     ERROR = "error"
     HEALTH = "health"
+    MISSION = "mission"
     NOTIFICATION = "notification"
 
 
