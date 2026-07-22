@@ -6,6 +6,8 @@ The Kernel is responsible for:
 - Loading environment variables
 - Initialising logging
 - Initialising dependency injection (service registry)
+- Creating the Event Bus
+- Creating the Operations Core
 - Loading plugins
 - Registering services
 - Starting modules
@@ -22,10 +24,13 @@ from typing import Optional
 
 from atlas_core import __app_name__, __version__
 from atlas_core.config import AtlasConfig, ConfigurationManager
+from atlas_core.events import EventBus
 from atlas_core.interfaces import KernelState
 from atlas_core.lifecycle import LifecycleManager
 from atlas_core.logging import setup_logging
+from atlas_core.memory import MemoryManager
 from atlas_core.monitoring import HealthMonitor, HealthSummary
+from atlas_core.operations import OperationsCore
 from atlas_core.plugins import ModuleLoader
 from atlas_core.registry import ServiceRegistry
 
@@ -38,6 +43,9 @@ class AtlasKernel:
         self._logger: Optional[logging.Logger] = None
         self._registry: Optional[ServiceRegistry] = None
         self._module_loader: Optional[ModuleLoader] = None
+        self._event_bus: Optional[EventBus] = None
+        self._operations_core: Optional[OperationsCore] = None
+        self._memory_manager: Optional[MemoryManager] = None
         self._lifecycle: Optional[LifecycleManager] = None
         self._health_monitor: Optional[HealthMonitor] = None
         self._state = KernelState.CREATED
@@ -68,6 +76,24 @@ class AtlasKernel:
             raise RuntimeError("Kernel has not been initialized")
         return self._health_monitor
 
+    @property
+    def event_bus(self) -> EventBus:
+        if self._event_bus is None:
+            raise RuntimeError("Kernel has not been initialized")
+        return self._event_bus
+
+    @property
+    def operations_core(self) -> OperationsCore:
+        if self._operations_core is None:
+            raise RuntimeError("Operations Core has not been created")
+        return self._operations_core
+
+    @property
+    def memory_engine(self) -> MemoryManager:
+        if self._memory_manager is None:
+            raise RuntimeError("Memory Engine has not been created")
+        return self._memory_manager
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -96,6 +122,7 @@ class AtlasKernel:
         # 3. Infrastructure
         self._registry = ServiceRegistry()
         self._module_loader = ModuleLoader()
+        self._event_bus = EventBus()
         self._lifecycle = LifecycleManager(self._registry)
         self._health_monitor = HealthMonitor(self._registry)
 
@@ -104,11 +131,19 @@ class AtlasKernel:
     def boot(self) -> None:
         """Phase 2 — discover plugins, register services, resolve dependencies.
 
-        Services register themselves via the registry before boot is called.
-        Once booted the dependency graph is frozen.
+        Registers the Operations Core (which depends on the Event Bus) and
+        any application-level services.  Once booted the dependency graph is
+        frozen.
         """
         if self._state != KernelState.INITIALIZED:
             raise RuntimeError("Kernel must be initialized before booting")
+
+        self._memory_manager = MemoryManager(event_bus=self._event_bus)
+        self._operations_core = OperationsCore(event_bus=self._event_bus)
+
+        self._registry.register(self._memory_manager)
+        self._registry.register(self._operations_core)
+
         self._state = KernelState.BOOTED
         self._logger.info(
             "Kernel booted — %d service(s) registered", self._registry.count

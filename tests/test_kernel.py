@@ -30,11 +30,15 @@ class TestAtlasKernel:
         assert kernel.config.app_name == "TestKernel"
         assert kernel.config.log_level == "DEBUG"
         assert kernel.registry.count == 0
+        assert kernel.event_bus is not None
 
     async def test_boot(self, kernel: AtlasKernel) -> None:
         kernel.initialize()
         kernel.boot()
         assert kernel.state == KernelState.BOOTED
+        assert kernel.registry.count == 2  # memory_engine + operations_core
+        assert kernel.operations_core is not None
+        assert kernel.memory_engine is not None
 
     async def test_full_lifecycle(self, kernel: AtlasKernel) -> None:
         svc = MockService("test_svc")
@@ -57,7 +61,7 @@ class TestAtlasKernel:
         await kernel.start()
         health = await kernel.health_check()
         assert health.status == "healthy"
-        assert health.healthy_services == 1
+        assert health.healthy_services == 3  # healthy + memory_engine + operations_core
 
     async def test_restart(self, kernel: AtlasKernel) -> None:
         svc = MockService("r")
@@ -98,7 +102,38 @@ class TestAtlasKernel:
         with pytest.raises(RuntimeError):
             _ = k.registry
 
-    async def test_health_monitor_before_init_raises(self) -> None:
+    async def test_event_bus_before_init_raises(self) -> None:
         k = AtlasKernel()
         with pytest.raises(RuntimeError):
-            _ = k.health_monitor
+            _ = k.event_bus
+
+    async def test_operations_core_before_boot_raises(self) -> None:
+        k = AtlasKernel()
+        k.initialize()
+        with pytest.raises(RuntimeError):
+            _ = k.operations_core
+
+    async def test_memory_engine_before_boot_raises(self) -> None:
+        k = AtlasKernel()
+        k.initialize()
+        with pytest.raises(RuntimeError):
+            _ = k.memory_engine
+
+    async def test_memory_engine_property(self, kernel: AtlasKernel) -> None:
+        kernel.initialize()
+        kernel.boot()
+        assert kernel.memory_engine is not None
+        from atlas_core.memory import MemoryManager
+        assert isinstance(kernel.memory_engine, MemoryManager)
+
+    async def test_event_bus_publishes_through_kernel(self, kernel: AtlasKernel) -> None:
+        kernel.initialize()
+        received: list = []
+
+        async def handler(event: object) -> None:
+            received.append(event)
+
+        kernel.event_bus.subscribe("system", handler)
+        from atlas_core.interfaces.events import Event, EventCategory
+        await kernel.event_bus.publish(Event(source="kernel_test", category=EventCategory.SYSTEM))
+        assert len(received) == 1
