@@ -1,0 +1,3 @@
+# Atlas Development Configuration
+debug: true
+log_level: "DEBUG"

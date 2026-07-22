@@ -1,0 +1,8 @@
+# Atlas Default Configuration
+app_name: "Atlas"
+version: "0.1.0"
+debug: false
+log_level: "INFO"
+log_dir: "logs"
+data_dir: "data"
+database_url: "sqlite:///data/atlas.db"

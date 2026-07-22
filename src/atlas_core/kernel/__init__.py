@@ -1,0 +1,164 @@
+"""AtlasKernel — the permanent runtime foundation of Atlas.
+
+The Kernel is responsible for:
+- Booting Atlas
+- Loading configuration
+- Loading environment variables
+- Initialising logging
+- Initialising dependency injection (service registry)
+- Loading plugins
+- Registering services
+- Starting modules
+- Monitoring health
+- Graceful shutdown
+
+It never performs business logic.  Its only responsibility is lifecycle
+management.
+"""
+
+import logging
+from pathlib import Path
+from typing import Optional
+
+from atlas_core import __app_name__, __version__
+from atlas_core.config import AtlasConfig, ConfigurationManager
+from atlas_core.interfaces import KernelState
+from atlas_core.lifecycle import LifecycleManager
+from atlas_core.logging import setup_logging
+from atlas_core.monitoring import HealthMonitor, HealthSummary
+from atlas_core.plugins import ModuleLoader
+from atlas_core.registry import ServiceRegistry
+
+
+class AtlasKernel:
+    def __init__(self, config_dir: str | Path = "config") -> None:
+        self._config_dir = Path(config_dir)
+        self._config: Optional[AtlasConfig] = None
+        self._config_manager: Optional[ConfigurationManager] = None
+        self._logger: Optional[logging.Logger] = None
+        self._registry: Optional[ServiceRegistry] = None
+        self._module_loader: Optional[ModuleLoader] = None
+        self._lifecycle: Optional[LifecycleManager] = None
+        self._health_monitor: Optional[HealthMonitor] = None
+        self._state = KernelState.CREATED
+
+    # ------------------------------------------------------------------
+    # Public properties
+    # ------------------------------------------------------------------
+
+    @property
+    def state(self) -> KernelState:
+        return self._state
+
+    @property
+    def config(self) -> AtlasConfig:
+        if self._config is None:
+            raise RuntimeError("Kernel has not been initialized")
+        return self._config
+
+    @property
+    def registry(self) -> ServiceRegistry:
+        if self._registry is None:
+            raise RuntimeError("Kernel has not been initialized")
+        return self._registry
+
+    @property
+    def health_monitor(self) -> HealthMonitor:
+        if self._health_monitor is None:
+            raise RuntimeError("Kernel has not been initialized")
+        return self._health_monitor
+
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
+
+    def initialize(self) -> None:
+        """Phase 1 — load configuration, set up logging and infrastructure."""
+        if self._state != KernelState.CREATED:
+            raise RuntimeError("Kernel can only be initialized once")
+
+        self._state = KernelState.INITIALIZED
+
+        # 1. Configuration
+        self._config_manager = ConfigurationManager(self._config_dir)
+        self._config = self._config_manager.initialize()
+
+        # 2. Logging
+        self._logger = setup_logging(
+            log_dir=Path(self._config.log_dir),
+            level=self._config.log_level,
+            app_name=self._config.app_name,
+        )
+        self._logger.info(
+            "%s v%s initializing …", __app_name__, __version__
+        )
+
+        # 3. Infrastructure
+        self._registry = ServiceRegistry()
+        self._module_loader = ModuleLoader()
+        self._lifecycle = LifecycleManager(self._registry)
+        self._health_monitor = HealthMonitor(self._registry)
+
+        self._logger.info("Kernel initialized successfully")
+
+    def boot(self) -> None:
+        """Phase 2 — discover plugins, register services, resolve dependencies.
+
+        Services register themselves via the registry before boot is called.
+        Once booted the dependency graph is frozen.
+        """
+        if self._state != KernelState.INITIALIZED:
+            raise RuntimeError("Kernel must be initialized before booting")
+        self._state = KernelState.BOOTED
+        self._logger.info(
+            "Kernel booted — %d service(s) registered", self._registry.count
+        )
+
+    async def start(self) -> None:
+        """Phase 3 — initialize and start all registered services."""
+        if self._state != KernelState.BOOTED:
+            raise RuntimeError("Kernel must be booted before starting")
+        self._state = KernelState.STARTING
+
+        self._logger.info("Starting %d service(s) …", self._registry.count)
+        await self._lifecycle.initialize_all()
+        await self._lifecycle.start_all()
+
+        summary = await self._health_monitor.check_all()
+        self._logger.info(
+            "Health check — status=%s  (%d/%d healthy)",
+            summary.status,
+            summary.healthy_services,
+            summary.total_services,
+        )
+
+        self._state = KernelState.RUNNING
+        self._logger.info("Kernel is running")
+
+    async def stop(self) -> None:
+        """Graceful shutdown — stop services in reverse dependency order."""
+        self._logger.info("Stopping kernel …")
+        self._state = KernelState.STOPPING
+
+        await self._lifecycle.stop_all()
+
+        self._state = KernelState.STOPPED
+        self._logger.info("Kernel stopped")
+        self._close_log_handlers()
+
+    @staticmethod
+    def _close_log_handlers() -> None:
+        root = logging.getLogger()
+        for handler in list(root.handlers):
+            handler.close()
+            root.removeHandler(handler)
+
+    async def restart(self) -> None:
+        """Restart the kernel (stop then boot + start)."""
+        await self.stop()
+        self._state = KernelState.BOOTED
+        await self.start()
+
+    async def health_check(self) -> HealthSummary:
+        """Run an immediate health check across all registered services."""
+        return await self._health_monitor.check_all()
