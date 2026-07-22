@@ -38,6 +38,7 @@ class EventCategory(Enum):
     HEALTH = "health"
     MISSION = "mission"
     NOTIFICATION = "notification"
+    AGENT = "agent"
 
 
 class Event(BaseModel):
