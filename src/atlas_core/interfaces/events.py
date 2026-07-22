@@ -40,6 +40,7 @@ class EventCategory(Enum):
     NOTIFICATION = "notification"
     AGENT = "agent"
     MULTI_AGENT = "multi_agent"
+    PERSISTENCE = "persistence"
 
 
 class Event(BaseModel):

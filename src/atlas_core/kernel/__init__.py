@@ -35,6 +35,7 @@ from atlas_core.mission import MissionControl
 from atlas_core.notification import NotificationService
 from atlas_core.agent import AgentRuntime
 from atlas_core.multi_agent import MultiAgentRuntime
+from atlas_core.persistence import PersistenceManager
 from atlas_core.opportunity import OpportunityEngine
 from atlas_core.plugins import ModuleLoader
 from atlas_core.registry import ServiceRegistry
@@ -56,6 +57,7 @@ class AtlasKernel:
         self._notification_service: Optional[NotificationService] = None
         self._agent_runtime: Optional[AgentRuntime] = None
         self._multi_agent_runtime: Optional[MultiAgentRuntime] = None
+        self._persistence_manager: Optional[PersistenceManager] = None
         self._lifecycle: Optional[LifecycleManager] = None
         self._health_monitor: Optional[HealthMonitor] = None
         self._state = KernelState.CREATED
@@ -139,6 +141,12 @@ class AtlasKernel:
             raise RuntimeError("Multi-Agent Runtime has not been created")
         return self._multi_agent_runtime
 
+    @property
+    def persistence_manager(self) -> PersistenceManager:
+        if self._persistence_manager is None:
+            raise RuntimeError("Persistence Manager has not been created")
+        return self._persistence_manager
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -190,6 +198,7 @@ class AtlasKernel:
         self._notification_service = NotificationService(event_bus=self._event_bus)
         self._agent_runtime = AgentRuntime(event_bus=self._event_bus)
         self._multi_agent_runtime = MultiAgentRuntime(event_bus=self._event_bus)
+        self._persistence_manager = PersistenceManager(event_bus=self._event_bus)
 
         self._registry.register(self._memory_manager)
         self._registry.register(self._operations_core)
@@ -198,6 +207,7 @@ class AtlasKernel:
         self._registry.register(self._notification_service)
         self._registry.register(self._agent_runtime)
         self._registry.register(self._multi_agent_runtime)
+        self._registry.register(self._persistence_manager)
 
         self._state = KernelState.BOOTED
         self._logger.info(
