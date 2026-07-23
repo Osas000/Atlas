@@ -36,6 +36,7 @@ from atlas_core.notification import NotificationService
 from atlas_core.agent import AgentRuntime
 from atlas_core.multi_agent import MultiAgentRuntime
 from atlas_core.monitor import SystemMonitor
+from atlas_core.monitor_api import MonitoringAPI
 from atlas_core.persistence import PersistenceManager
 from atlas_core.opportunity import OpportunityEngine
 from atlas_core.plugins import ModuleLoader
@@ -60,6 +61,7 @@ class AtlasKernel:
         self._multi_agent_runtime: Optional[MultiAgentRuntime] = None
         self._persistence_manager: Optional[PersistenceManager] = None
         self._system_monitor: Optional[SystemMonitor] = None
+        self._monitoring_api: Optional[MonitoringAPI] = None
         self._lifecycle: Optional[LifecycleManager] = None
         self._health_monitor: Optional[HealthMonitor] = None
         self._state = KernelState.CREATED
@@ -155,6 +157,12 @@ class AtlasKernel:
             raise RuntimeError("System Monitor has not been created")
         return self._system_monitor
 
+    @property
+    def monitoring_api(self) -> MonitoringAPI:
+        if self._monitoring_api is None:
+            raise RuntimeError("Monitoring API has not been created")
+        return self._monitoring_api
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -228,6 +236,13 @@ class AtlasKernel:
         self._system_monitor.register_service("multi_agent_runtime", self._multi_agent_runtime)
         self._system_monitor.register_service("persistence_manager", self._persistence_manager)
         self._system_monitor.register_service("system_monitor", self._system_monitor)
+
+        self._monitoring_api = MonitoringAPI(
+            event_bus=self._event_bus,
+            persistence_manager=self._persistence_manager,
+            system_monitor=self._system_monitor,
+        )
+        self._registry.register(self._monitoring_api)
 
         self._state = KernelState.BOOTED
         self._logger.info(
