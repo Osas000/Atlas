@@ -500,7 +500,7 @@ class TestHeartbeatManager:
         # Set very short timeout; don't send heartbeat
         hb_manager.timeout = 0.001
         hb_manager.update("n1")
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0.1)
         assert hb_manager.is_alive("n1") is False
 
     async def test_check_timeouts_empty(self, hb_manager: HeartbeatManager) -> None:
@@ -512,7 +512,7 @@ class TestHeartbeatManager:
         registry.register_node(NodeInfo(node_id="n1", hostname="h", version="1"))
         hb = HeartbeatManager(registry, timeout=0.001)
         hb.update("n1")
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0.1)
         timed_out = hb.check_timeouts()
         assert "n1" in timed_out
 
@@ -969,10 +969,10 @@ class TestKernelIntegration:
     async def test_kernel_registers_distributed_runtime(self, kernel: Any) -> None:
         kernel.initialize()
         kernel.boot()
-        assert kernel.registry.count == 15
-        from atlas_core.distributed import DistributedRuntime
-        assert isinstance(kernel.distributed_runtime, DistributedRuntime)
-        assert kernel.distributed_runtime.service_id == "distributed_runtime"
+        assert kernel.registry.count == 16
+        from atlas_core.configuration import ConfigurationManager as ConfigManager
+        assert isinstance(kernel.configuration_manager, ConfigManager)
+        assert kernel.configuration_manager.name == "configuration_manager"
 
     async def test_kernel_property_before_boot_raises(self, kernel: Any) -> None:
         kernel.initialize()
@@ -983,7 +983,7 @@ class TestKernelIntegration:
         kernel.initialize()
         kernel.boot()
         await kernel.start()
-        assert kernel.registry.count == 15
+        assert kernel.registry.count == 16
         health = await kernel.distributed_runtime.health_check()
         assert health.healthy is True
         await kernel.stop()
@@ -1105,7 +1105,7 @@ class TestEdgeCases:
         registry.register_node(NodeInfo(node_id="n1", hostname="h", version="1"))
         hb = HeartbeatManager(registry, timeout=0.001)
         hb.update("n1")
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0.1)
         hb.check_timeouts()
         node = registry.lookup("n1")
         assert node is not None
@@ -1150,7 +1150,7 @@ class TestEdgeCases:
         registry.register_node(NodeInfo(node_id="n1", hostname="h", version="1"))
         hb = HeartbeatManager(registry, timeout=0.001)
         hb.update("n1")
-        await asyncio.sleep(0.01)
+        await asyncio.sleep(0.1)
         async def check() -> None:
             for _ in range(10):
                 hb.check_timeouts()

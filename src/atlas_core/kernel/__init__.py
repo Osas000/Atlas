@@ -45,6 +45,7 @@ from atlas_core.registry import ServiceRegistry
 from atlas_core.security import SecurityManager
 from atlas_core.workflow import WorkflowEngine
 from atlas_core.distributed import DistributedRuntime
+from atlas_core.configuration import ConfigurationManager as ConfigManager
 
 
 class AtlasKernel:
@@ -71,6 +72,7 @@ class AtlasKernel:
         self._workflow_engine: Optional[WorkflowEngine] = None
         self._security_manager: Optional[SecurityManager] = None
         self._distributed_runtime: Optional[DistributedRuntime] = None
+        self._configuration_manager: Optional[ConfigManager] = None
         self._lifecycle: Optional[LifecycleManager] = None
         self._health_monitor: Optional[HealthMonitor] = None
         self._state = KernelState.CREATED
@@ -202,6 +204,12 @@ class AtlasKernel:
             raise RuntimeError("Distributed Runtime has not been created")
         return self._distributed_runtime
 
+    @property
+    def configuration_manager(self) -> ConfigManager:
+        if self._configuration_manager is None:
+            raise RuntimeError("Configuration Manager has not been created")
+        return self._configuration_manager
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -314,6 +322,12 @@ class AtlasKernel:
             hostname="localhost",
         )
         self._registry.register(self._distributed_runtime)
+
+        self._configuration_manager = ConfigManager(
+            event_bus=self._event_bus,
+            persistence_manager=self._persistence_manager,
+        )
+        self._registry.register(self._configuration_manager)
 
         self._state = KernelState.BOOTED
         self._logger.info(

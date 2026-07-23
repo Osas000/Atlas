@@ -36,7 +36,7 @@ class TestAtlasKernel:
         kernel.initialize()
         kernel.boot()
         assert kernel.state == KernelState.BOOTED
-        assert kernel.registry.count == 15  # memory_manager + operations_core + opportunity_engine + mission_control + notification_service + agent_runtime + multi_agent_runtime + persistence_manager + system_monitor + monitoring_api + plugin_manager + connector_manager + workflow_engine + security_manager + distributed_runtime
+        assert kernel.registry.count == 16  # memory_manager + operations_core + opportunity_engine + mission_control + notification_service + agent_runtime + multi_agent_runtime + persistence_manager + system_monitor + monitoring_api + plugin_manager + connector_manager + workflow_engine + security_manager + distributed_runtime + configuration_manager
         assert kernel.operations_core is not None
         assert kernel.memory_manager is not None
 
@@ -61,7 +61,7 @@ class TestAtlasKernel:
         await kernel.start()
         health = await kernel.health_check()
         assert health.status == "healthy"
-        assert health.healthy_services == 16  # healthy + memory_manager + operations_core + opportunity_engine + mission_control + notification_service + agent_runtime + multi_agent_runtime + persistence_manager + system_monitor + monitoring_api + plugin_manager + connector_manager + workflow_engine + security_manager + distributed_runtime
+        assert health.healthy_services == 17  # healthy + memory_manager + operations_core + opportunity_engine + mission_control + notification_service + agent_runtime + multi_agent_runtime + persistence_manager + system_monitor + monitoring_api + plugin_manager + connector_manager + workflow_engine + security_manager + distributed_runtime + configuration_manager
 
     async def test_restart(self, kernel: AtlasKernel) -> None:
         svc = MockService("r")
