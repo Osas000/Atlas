@@ -44,6 +44,7 @@ class EventCategory(Enum):
     MONITOR = "monitor"
     MONITOR_API = "monitor_api"
     PLUGIN = "plugin"
+    CONNECTOR = "connector"
 
 
 class Event(BaseModel):

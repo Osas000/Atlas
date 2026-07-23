@@ -39,6 +39,7 @@ from atlas_core.monitor import SystemMonitor
 from atlas_core.monitor_api import MonitoringAPI
 from atlas_core.persistence import PersistenceManager
 from atlas_core.opportunity import OpportunityEngine
+from atlas_core.connectors import ConnectorManager
 from atlas_core.plugins import ModuleLoader, PluginManager
 from atlas_core.registry import ServiceRegistry
 
@@ -63,6 +64,7 @@ class AtlasKernel:
         self._system_monitor: Optional[SystemMonitor] = None
         self._monitoring_api: Optional[MonitoringAPI] = None
         self._plugin_manager: Optional[PluginManager] = None
+        self._connector_manager: Optional[ConnectorManager] = None
         self._lifecycle: Optional[LifecycleManager] = None
         self._health_monitor: Optional[HealthMonitor] = None
         self._state = KernelState.CREATED
@@ -170,6 +172,12 @@ class AtlasKernel:
             raise RuntimeError("Plugin Manager has not been created")
         return self._plugin_manager
 
+    @property
+    def connector_manager(self) -> ConnectorManager:
+        if self._connector_manager is None:
+            raise RuntimeError("Connector Manager has not been created")
+        return self._connector_manager
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -256,6 +264,11 @@ class AtlasKernel:
             registry=self._registry,
         )
         self._registry.register(self._plugin_manager)
+
+        self._connector_manager = ConnectorManager(
+            event_bus=self._event_bus,
+        )
+        self._registry.register(self._connector_manager)
 
         self._state = KernelState.BOOTED
         self._logger.info(
