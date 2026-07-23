@@ -42,6 +42,7 @@ from atlas_core.opportunity import OpportunityEngine
 from atlas_core.connectors import ConnectorManager
 from atlas_core.plugins import ModuleLoader, PluginManager
 from atlas_core.registry import ServiceRegistry
+from atlas_core.workflow import WorkflowEngine
 
 
 class AtlasKernel:
@@ -65,6 +66,7 @@ class AtlasKernel:
         self._monitoring_api: Optional[MonitoringAPI] = None
         self._plugin_manager: Optional[PluginManager] = None
         self._connector_manager: Optional[ConnectorManager] = None
+        self._workflow_engine: Optional[WorkflowEngine] = None
         self._lifecycle: Optional[LifecycleManager] = None
         self._health_monitor: Optional[HealthMonitor] = None
         self._state = KernelState.CREATED
@@ -178,6 +180,12 @@ class AtlasKernel:
             raise RuntimeError("Connector Manager has not been created")
         return self._connector_manager
 
+    @property
+    def workflow_engine(self) -> WorkflowEngine:
+        if self._workflow_engine is None:
+            raise RuntimeError("Workflow Engine has not been created")
+        return self._workflow_engine
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -269,6 +277,14 @@ class AtlasKernel:
             event_bus=self._event_bus,
         )
         self._registry.register(self._connector_manager)
+
+        self._workflow_engine = WorkflowEngine(
+            event_bus=self._event_bus,
+            connector_manager=self._connector_manager,
+            mission_control=self._mission_control,
+            notification_service=self._notification_service,
+        )
+        self._registry.register(self._workflow_engine)
 
         self._state = KernelState.BOOTED
         self._logger.info(
