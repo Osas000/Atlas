@@ -41,6 +41,7 @@ class EventCategory(Enum):
     AGENT = "agent"
     MULTI_AGENT = "multi_agent"
     PERSISTENCE = "persistence"
+    MONITOR = "monitor"
 
 
 class Event(BaseModel):
