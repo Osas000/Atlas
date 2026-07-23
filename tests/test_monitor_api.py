@@ -771,7 +771,7 @@ class TestKernelIntegration:
         kernel = AtlasKernel(config_dir)
         kernel.initialize()
         kernel.boot()
-        assert kernel.registry.count == 10
+        assert kernel.registry.count == 11
         assert kernel.monitoring_api is not None
         from atlas_core.monitor_api import MonitoringAPI
         assert isinstance(kernel.monitoring_api, MonitoringAPI)

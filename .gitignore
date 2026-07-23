@@ -13,6 +13,9 @@ build/
 .env
 *.log
 
+# Database artifacts
+*.db
+
 # IDE
 .vscode/
 .idea/

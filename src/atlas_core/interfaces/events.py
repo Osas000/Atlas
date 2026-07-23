@@ -43,6 +43,7 @@ class EventCategory(Enum):
     PERSISTENCE = "persistence"
     MONITOR = "monitor"
     MONITOR_API = "monitor_api"
+    PLUGIN = "plugin"
 
 
 class Event(BaseModel):

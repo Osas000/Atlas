@@ -362,7 +362,7 @@ class HistoryEndpoint:
     async def get_snapshots(self, limit: int = 50) -> list[dict[str, Any]]:
         results: list[dict[str, Any]] = []
         try:
-            keys = await self._persistence._storage.list_keys("monitor_snapshots")
+            keys = await self._persistence.list_keys("monitor_snapshots")
             for key in sorted(keys, reverse=True)[:limit]:
                 val = await self._persistence.load("monitor_snapshots", key)
                 if val is not None:
@@ -374,7 +374,7 @@ class HistoryEndpoint:
     async def get_health_reports(self, limit: int = 50) -> list[dict[str, Any]]:
         results: list[dict[str, Any]] = []
         try:
-            keys = await self._persistence._storage.list_keys("monitor_health")
+            keys = await self._persistence.list_keys("monitor_health")
             for key in sorted(keys, reverse=True)[:limit]:
                 val = await self._persistence.load("monitor_health", key)
                 if val is not None:
@@ -386,7 +386,7 @@ class HistoryEndpoint:
     async def get_alerts(self, limit: int = 50) -> list[dict[str, Any]]:
         results: list[dict[str, Any]] = []
         try:
-            keys = await self._persistence._storage.list_keys("monitor_alerts")
+            keys = await self._persistence.list_keys("monitor_alerts")
             for key in sorted(keys, reverse=True)[:limit]:
                 val = await self._persistence.load("monitor_alerts", key)
                 if val is not None:
@@ -403,7 +403,7 @@ class HistoryEndpoint:
     ) -> list[dict[str, Any]]:
         results: list[dict[str, Any]] = []
         try:
-            keys = await self._persistence._storage.list_keys(collection)
+            keys = await self._persistence.list_keys(collection)
             for key in keys:
                 try:
                     ts = float(key.split("_")[-1] if "_" in key else key)

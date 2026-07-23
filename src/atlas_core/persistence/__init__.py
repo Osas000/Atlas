@@ -732,6 +732,14 @@ class PersistenceManager(IService):
             self._metrics.record_error()
             raise
 
+    async def list_keys(self, collection: str) -> list[str]:
+        """List all keys in a collection."""
+        try:
+            return await self._storage.list_keys(collection)
+        except Exception:
+            self._metrics.record_error()
+            raise
+
     async def backup(self, path: str) -> None:
         """Create a copy of the current database."""
         if hasattr(self._storage, "_connection") and self._storage._connection:
