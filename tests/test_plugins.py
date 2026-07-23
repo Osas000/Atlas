@@ -934,7 +934,7 @@ class TestKernelIntegration:
         kernel = AtlasKernel(config_dir)
         kernel.initialize()
         kernel.boot()
-        assert kernel.registry.count == 14
+        assert kernel.registry.count == 15
         assert kernel.plugin_manager is not None
         from atlas_core.plugins import PluginManager
         assert isinstance(kernel.plugin_manager, PluginManager)

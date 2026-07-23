@@ -46,6 +46,7 @@ class EventCategory(Enum):
     PLUGIN = "plugin"
     CONNECTOR = "connector"
     SECURITY = "security"
+    DISTRIBUTED = "distributed"
 
 
 class Event(BaseModel):

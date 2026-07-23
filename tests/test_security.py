@@ -739,7 +739,7 @@ class TestKernelIntegration:
     async def test_kernel_boot_registers_security_manager(self, kernel) -> None:
         kernel.initialize()
         kernel.boot()
-        assert kernel.registry.count == 14
+        assert kernel.registry.count == 15
         assert kernel.security_manager is not None
         from atlas_core.security import SecurityManager
         assert isinstance(kernel.security_manager, SecurityManager)

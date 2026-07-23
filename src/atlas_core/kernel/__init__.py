@@ -44,6 +44,7 @@ from atlas_core.plugins import ModuleLoader, PluginManager
 from atlas_core.registry import ServiceRegistry
 from atlas_core.security import SecurityManager
 from atlas_core.workflow import WorkflowEngine
+from atlas_core.distributed import DistributedRuntime
 
 
 class AtlasKernel:
@@ -69,6 +70,7 @@ class AtlasKernel:
         self._connector_manager: Optional[ConnectorManager] = None
         self._workflow_engine: Optional[WorkflowEngine] = None
         self._security_manager: Optional[SecurityManager] = None
+        self._distributed_runtime: Optional[DistributedRuntime] = None
         self._lifecycle: Optional[LifecycleManager] = None
         self._health_monitor: Optional[HealthMonitor] = None
         self._state = KernelState.CREATED
@@ -194,6 +196,12 @@ class AtlasKernel:
             raise RuntimeError("Security Manager has not been created")
         return self._security_manager
 
+    @property
+    def distributed_runtime(self) -> DistributedRuntime:
+        if self._distributed_runtime is None:
+            raise RuntimeError("Distributed Runtime has not been created")
+        return self._distributed_runtime
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -299,6 +307,13 @@ class AtlasKernel:
             persistence_manager=self._persistence_manager,
         )
         self._registry.register(self._security_manager)
+
+        self._distributed_runtime = DistributedRuntime(
+            event_bus=self._event_bus,
+            node_id="kernel_node",
+            hostname="localhost",
+        )
+        self._registry.register(self._distributed_runtime)
 
         self._state = KernelState.BOOTED
         self._logger.info(
