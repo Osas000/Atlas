@@ -865,7 +865,7 @@ class TestKernelIntegration:
     async def test_kernel_boot_registers_connector_manager(self, kernel) -> None:
         kernel.initialize()
         kernel.boot()
-        assert kernel.registry.count == 13
+        assert kernel.registry.count == 14
         assert kernel.connector_manager is not None
         from atlas_core.connectors import ConnectorManager
         assert isinstance(kernel.connector_manager, ConnectorManager)

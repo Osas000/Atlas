@@ -42,6 +42,7 @@ from atlas_core.opportunity import OpportunityEngine
 from atlas_core.connectors import ConnectorManager
 from atlas_core.plugins import ModuleLoader, PluginManager
 from atlas_core.registry import ServiceRegistry
+from atlas_core.security import SecurityManager
 from atlas_core.workflow import WorkflowEngine
 
 
@@ -67,6 +68,7 @@ class AtlasKernel:
         self._plugin_manager: Optional[PluginManager] = None
         self._connector_manager: Optional[ConnectorManager] = None
         self._workflow_engine: Optional[WorkflowEngine] = None
+        self._security_manager: Optional[SecurityManager] = None
         self._lifecycle: Optional[LifecycleManager] = None
         self._health_monitor: Optional[HealthMonitor] = None
         self._state = KernelState.CREATED
@@ -186,6 +188,12 @@ class AtlasKernel:
             raise RuntimeError("Workflow Engine has not been created")
         return self._workflow_engine
 
+    @property
+    def security_manager(self) -> SecurityManager:
+        if self._security_manager is None:
+            raise RuntimeError("Security Manager has not been created")
+        return self._security_manager
+
     # ------------------------------------------------------------------
     # Public API
     # ------------------------------------------------------------------
@@ -285,6 +293,12 @@ class AtlasKernel:
             notification_service=self._notification_service,
         )
         self._registry.register(self._workflow_engine)
+
+        self._security_manager = SecurityManager(
+            event_bus=self._event_bus,
+            persistence_manager=self._persistence_manager,
+        )
+        self._registry.register(self._security_manager)
 
         self._state = KernelState.BOOTED
         self._logger.info(

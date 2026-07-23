@@ -934,7 +934,7 @@ class TestKernelIntegration:
     async def test_kernel_boot_registers_workflow_engine(self, kernel) -> None:
         kernel.initialize()
         kernel.boot()
-        assert kernel.registry.count == 13
+        assert kernel.registry.count == 14
         assert kernel.workflow_engine is not None
         from atlas_core.workflow import WorkflowEngine
         assert isinstance(kernel.workflow_engine, WorkflowEngine)
